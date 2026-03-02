@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: megastore_pg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: db_megastore_exam
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:6
+    container_name: megastore_mongo
+    ports:
+      - "27017:27017"
+
+  api:
+    build: .
+    container_name: megastore_api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - PG_USER=postgres
+      - PG_PASSWORD=password123
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_DATABASE=db_megastore_exam
+      - MONGO_URI=mongodb://mongo:27017/db_megastore_exam
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_started
